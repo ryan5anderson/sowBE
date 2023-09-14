@@ -9,11 +9,16 @@ const cors = require('cors')
 const corsOptions = require('./config/corsOptions')
 const connectDB = require('./config/dbConn')
 const mongoose = require('mongoose')
+const bodyParser = require('body-parser');
+const emailController = require('./controllers/emailController');
+
 const PORT = process.env.PORT || 3500
 
 console.log(process.env.NODE_ENV)
 
 connectDB()
+
+app.use(bodyParser.json());
 
 app.use(logger)
 
@@ -29,6 +34,9 @@ app.use('/', require('./routes/root'))
 app.use('/auth', require('./routes/authRoutes'))
 app.use('/users', require('./routes/userRoutes'))
 app.use('/notes', require('./routes/noteRoutes'))
+app.use('/sows', require('./routes/sowRoutes'))
+app.post('/sendEmail', emailController.sendEmail);
+
 
 
 app.all('*', (req, res) => {
