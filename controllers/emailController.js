@@ -8,14 +8,14 @@ const sendEmail = (req, res) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'anderson.t.ryan@gmail.com',
-      pass: 'gqcl qroo dgfj nsye'
+      user: '',
+      pass: ''
     }
   });
 
 
   const mailOptions = {
-    from: 'anderson.t.ryan@gmail.com',
+    from: '',
     to: email,
     subject: 'Form Data',
     text: JSON.stringify(formData)
@@ -28,16 +28,6 @@ const sendEmail = (req, res) => {
     res.status(200).send('Email sent: ' + info.response);
   });
 
-  /*
-  
-  const mailOptions = {
-    from: 'anderson.t.ryan@gmail.com',
-    to: 'recipient@example.com',
-    subject: 'Test Email',
-    text: 'This is a test email.'
-  };
-
-  */
 
   };
 
