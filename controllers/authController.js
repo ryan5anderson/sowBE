@@ -13,15 +13,53 @@ const login = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'All fields are required' })
     }
 
-    const foundUser = await User.findOne({ username }).exec()
+    console.log(`Login attempt for username: "${username}"`)
+    console.log(`Current database: ${require('mongoose').connection.name}`)
+    console.log(`Current collection: ${User.collection.name}`)
+    
+    // Try case-insensitive search
+    const foundUser = await User.findOne({ 
+        username: { $regex: new RegExp(`^${username}$`, 'i') } 
+    }).exec()
+    
+    // Also try to find all users for debugging
+    const allUsers = await User.find({}).select('username active').exec()
+    console.log(`All users in database:`, allUsers.map(u => ({ username: u.username, active: u.active })))
+    console.log(`Total users found: ${allUsers.length}`)
 
-    if (!foundUser || !foundUser.active) {
-        return res.status(401).json({ message: 'Unauthorized' })
+    if (!foundUser) {
+        console.log(`❌ User not found: "${username}"`)
+        console.log(`Available usernames:`, allUsers.map(u => u.username))
+        return res.status(401).json({ message: 'Unauthorized - User not found' })
     }
 
-    const match = await bcrypt.compare(password, foundUser.password)
+    console.log(`✓ User found: ${foundUser.username}, active: ${foundUser.active}`)
+    console.log(`Stored password hash starts with: ${foundUser.password.substring(0, 10)}...`)
 
-    if (!match) return res.status(401).json({ message: 'Unauthorized' })
+    if (!foundUser.active) {
+        console.log(`❌ User account is inactive: ${username}`)
+        return res.status(401).json({ message: 'Unauthorized - User account is inactive' })
+    }
+
+    // Check if password is already hashed (starts with $2b$)
+    let match = false
+    if (foundUser.password.startsWith('$2b$') || foundUser.password.startsWith('$2a$')) {
+        // Password is hashed, use bcrypt.compare
+        match = await bcrypt.compare(password, foundUser.password)
+        console.log(`Password match (bcrypt): ${match}`)
+    } else {
+        // Password is plaintext (shouldn't happen, but handle it)
+        console.log(`⚠️ WARNING: Password stored as plaintext! This is insecure.`)
+        match = password === foundUser.password
+        console.log(`Password match (plaintext): ${match}`)
+    }
+
+    if (!match) {
+        console.log(`❌ Invalid password for user: ${username}`)
+        return res.status(401).json({ message: 'Unauthorized - Invalid password' })
+    }
+
+    console.log(`✓ Login successful for user: ${username}`)
 
     const accessToken = jwt.sign(
         {
